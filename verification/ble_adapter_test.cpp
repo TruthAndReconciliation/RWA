@@ -1,5 +1,5 @@
 #include "stubs/Bluepad32.h"
-#include "../MB001_USB/XboxBle.h"
+#include "../MB001_Control/XboxBle.h"
 #include <assert.h>
 #include <stdio.h>
 FakeBluepad BP32;
