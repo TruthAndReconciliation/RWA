@@ -1,4 +1,4 @@
-#include "../MB001_USB/GamepadInput.h"
+#include "../MB001_Control/GamepadInput.h"
 #include <assert.h>
 #include <stdio.h>
 

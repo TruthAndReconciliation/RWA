@@ -21,6 +21,12 @@ namespace Pins {
   // Reserved for Noah's BNO055 integration. I2C is not initialized yet.
   const uint8_t IMU_SDA = 8;
   const uint8_t IMU_SCL = 9;
+
+  // Reserved for the UART link to the comms board (Serial1). Not started yet.
+  // Wires cross over: control GPIO17 (TX) -> comms GPIO18 (RX),
+  // control GPIO18 (RX) <- comms GPIO17 (TX), and GND to GND.
+  const uint8_t LINK_TX = 17;
+  const uint8_t LINK_RX = 18;
 }
 
 // Leave 0/3/45/46 (boot straps), 19/20 (USB), 43/44 (USB-UART),

@@ -1,5 +1,5 @@
-#include "../MB001_USB/Controller.h"
-#include "../MB001_USB/Protocol.h"
+#include "../MB001_Control/Controller.h"
+#include "../MB001_Control/Protocol.h"
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>

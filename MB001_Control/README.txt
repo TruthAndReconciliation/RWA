@@ -1,4 +1,4 @@
-MB001 Xbox BLE board-only controller — 0.4.4-xbox-bench
+MB001 CONTROL BOARD (future motor + IMU board) — Xbox BLE bench build 0.4.4-xbox-bench
 
 USB firmware uploads only. No Arduino Cloud, Wi-Fi, OTA, onboard self-test commands,
 or filesystem. Motor outputs remain hard-disabled; BNO055 remains unavailable.
@@ -73,14 +73,14 @@ IMPORTANT: the included partitions.csv overrides that menu layout during build.
 Actual layout: 20 KB NVS, 4 KB PHY, one factory app from 0x10000 to 0xFFFFFF.
 There is no SPIFFS, OTA slot or core-dump partition in the actual uploaded table.
 The menu's 2 MB compiler limit is conservative; current sketch fits well below it.
-Keep partitions.csv and all .h/.cpp files alongside MB001_USB.ino.
+Keep partitions.csv and all .h/.cpp files alongside MB001_Control.ino.
 Erase All Flash Before Sketch Upload: Disabled to preserve controller pairing.
 
 FILES
 Controller.h/.cpp: BenchController state, targets, latched faults and watchdog.
 GamepadInput.h/.cpp: pure C++ input mapping, dead zones and enabling rules.
 XboxBle.h/.cpp: Bluepad32 adapter, callbacks and new-report polling.
-Protocol.h/.cpp: USB parsing. MB001_USB.ino: scheduling and diagnostics.
+Protocol.h/.cpp: USB parsing. MB001_Control.ino: scheduling and diagnostics.
 PinAssignments.h: provisional STEP/DIR/ENABLE and IMU GPIO reservations.
 partitions.csv: USB-only layout. No motor/IMU driver placeholders remain.
 verification/: host-side state/mapping tests; no test commands on the device.
@@ -127,6 +127,7 @@ Throttle         GPIO4   GPIO5  GPIO6
 Brake            GPIO7   GPIO10 GPIO11
 Steering         GPIO12  GPIO13 GPIO14
 BNO055 I2C: SDA GPIO8, SCL GPIO9 reserved, not initialized.
+Comms board UART link: TX GPIO17, RX GPIO18 reserved, not initialized (see MB001_Comms/README.txt).
 No clutch, limit-switch, homing or driver-fault pins assigned yet.
 
 STEP pulses request increments; DIR selects direction; ENABLE controls the
