@@ -1,7 +1,7 @@
-MB001 CONTROL BOARD (future motor + IMU board) — Xbox BLE bench build 0.4.4-xbox-bench
+MB001 CONTROL BOARD (future motor + IMU board) — Xbox BLE bench build 0.5.0-link-bench
 
 USB firmware uploads only. No Arduino Cloud, Wi-Fi, OTA, onboard self-test commands,
-or filesystem. Motor outputs remain hard-disabled; BNO055 remains unavailable.
+or filesystem on this board (Wi-Fi lives on the comms board, MB001_Comms). Motor outputs remain hard-disabled; BNO055 remains unavailable.
 
 CONTROLLER MAPPING
 Intended controller: Xbox Series X|S model 1914, paired directly using BLE.
@@ -46,6 +46,22 @@ VID filtering is not authentication. Pairing keys persist across resets.
 Discovery remains enabled for this bench version; production needs controller
 identity binding and a deliberate pairing window before hardware is enabled.
 
+COMMS BOARD LINK (UART, new in 0.5.0)
+Serial1 on TX GPIO17 / RX GPIO18, 115200 baud 8N1, connected to the comms
+board (see MB001_Comms/README.txt for wiring). The link accepts exactly the
+same commands as USB, with the same rules: diagnostics, DISARM, STOP,
+CLEAR_FAULT and TELEMETRY only. Xbox still owns movement; the link cannot arm.
+Each reply goes back out the port the command came in on. TELEMETRY 0|1 is
+separate per port: TELEMETRY 1 on the link does not flood the USB monitor.
+Each port keeps its own partial line and 250 ms partial-line timeout.
+Malformed bytes on EITHER port while ARMED latch SERIAL_FRAME_ERROR, so a
+noisy or unplugged link cable while armed fails safe.
+HEALTH adds: LINK tx=17 rx=18 baud=115200 usb_commands=N link_commands=N.
+The comms board sends PING about once a second when the link is quiet, so
+link_commands keeps counting up while the comms board is connected.
+There is no link watchdog on this board yet: the link has no movement
+authority. Add one before allowing movement commands over Wi-Fi.
+
 USB DIAGNOSTICS
 HELP, VERSION, PING, STATUS, HEALTH, DISARM, STOP, CLEAR_FAULT, TELEMETRY 0|1.
 STATUS reports requested values, not measured/applied motor positions.
@@ -86,6 +102,11 @@ partitions.csv: USB-only layout. No motor/IMU driver placeholders remain.
 verification/: host-side state/mapping tests; no test commands on the device.
 
 VALIDATION
+Version 0.5.0 (UART link) passed all four host test programs (including the
+comms bridge tests) with AddressSanitizer and UndefinedBehaviorSanitizer and
+compiled for ESP32-S3 with Bluepad32 4.1.0: 565,465 bytes program storage,
+66,956 bytes static RAM. The UART link has not been run on hardware yet.
+Earlier notes for 0.4.4:
 Version 0.4.4 passed all three host test programs with AddressSanitizer and
 UndefinedBehaviorSanitizer, and compiled for ESP32-S3 using Bluepad32 4.1.0.
 Build: 565,209 bytes program storage and 66,820 bytes static RAM (276 and

@@ -4,7 +4,7 @@ Arduino firmware for the two ESP32-S3-N16R8 boards in the MB001 motorcycle proje
 
 | Folder | Board | Version | What it does |
 |---|---|---|---|
-| `MB001_Control/` | Control board | `0.4.4-xbox-bench` | Arming, faults, watchdogs, Xbox BLE input, USB diagnostics. Will drive the motors and read the IMU. |
+| `MB001_Control/` | Control board | `0.5.0-link-bench` | Arming, faults, watchdogs, Xbox BLE input, USB diagnostics. Will drive the motors and read the IMU. |
 | `MB001_Comms/` | Comms board | `0.1.0-comms-bench` | Wi-Fi bridge: relays text commands between the Python control script (UDP) and the control board (UART). |
 | `verification/` | — | — | Host-side C++ tests for both boards. |
 
@@ -18,7 +18,7 @@ Open each `.ino` in its own Arduino IDE window. Setup and operating notes:
 - [Control board](MB001_Control/README.txt) (Bluepad32 board package, Xbox pairing)
 - [Comms board](MB001_Comms/README.txt) (Wi-Fi setup, wiring, UDP protocol)
 
-**Status:** bench builds only. Motor outputs and IMU readings are not implemented. The control board does not listen on the UART link yet, so the comms board reports `link=DOWN` until that is added.
+**Status:** bench builds only. Motor outputs and IMU readings are not implemented. The UART link between the boards carries diagnostics and stop/recovery commands only; Xbox still owns movement.
 
 ## Running the tests
 
