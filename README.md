@@ -20,6 +20,55 @@ Open each `.ino` in its own Arduino IDE window. Setup and operating notes:
 
 **Status:** bench builds only. Motor outputs and IMU readings are not implemented. The UART link between the boards carries diagnostics and stop/recovery commands only; Xbox still owns movement.
 
+## Connecting the boards (UART)
+
+The boards talk over a UART serial link: 115200 baud, 8N1, one text command per line. You need the control board on `0.5.0-link-bench` or later and the comms board on `0.1.0-comms-bench` or later.
+
+### Wiring
+
+Unplug both boards before wiring. You need 3 jumper wires, and **the two data wires cross over**:
+
+```
+   COMMS BOARD                 CONTROL BOARD
+   GPIO17 (TX) ──────────────▶ GPIO18 (RX)
+   GPIO18 (RX) ◀────────────── GPIO17 (TX)
+   GND         ─────────────── GND
+```
+
+| Comms board pin | Control board pin | Purpose |
+|---|---|---|
+| GPIO17 (TX) | GPIO18 (RX) | Commands from the comms board to the control board |
+| GPIO18 (RX) | GPIO17 (TX) | Replies from the control board to the comms board |
+| GND | GND | Shared ground (**required**) |
+
+- **Cross TX and RX.** Each board's TX (transmit) goes to the other board's RX (receive). Wiring 17 to 17 is the most common mistake.
+- **The ground wire is required.** Without a shared ground the boards read random bytes.
+- **Use the GPIO numbers printed on the board**, not header pin positions.
+- **On the bench, power each board from its own USB cable.** Do not connect the 5V or 3V3 pins of the two boards together. Both boards use 3.3 V logic, so no level shifter is needed.
+- **Keep the wires short** (under about 30 cm). On the bike, run the ground wire alongside the two signal wires.
+
+### First bench test
+
+1. **Upload the firmware.** On the comms board, copy `MB001_Comms/WifiSecrets.example.h` to `WifiSecrets.h` first; the Wi-Fi details can be placeholders for this test. Then upload `MB001_Comms` to it. Upload `MB001_Control` to the control board.
+2. **Noise check before wiring.** Open the control board's Serial Monitor (115200 baud, Newline) and type `HEALTH` a few times over about 10 seconds. `frame_errors` should stay at 0, which shows the unconnected link pin isn't picking up noise.
+3. **Wire the boards** as shown above, then plug in both USB cables. To watch both Serial Monitors at once, open each sketch in its own Arduino IDE window.
+4. **Check the comms board's monitor.** Within about a second you should see `BRIDGE link=UP`. Then type:
+   - `PING` → you should get `CTRL> PONG`
+   - `STATUS` → you should get `CTRL> STATUS version=0.5.0-link-bench ...`
+5. **Check the control board's monitor.** Type `HEALTH`. On the `LINK` line, `link_commands` should go up about once a second; those are the comms board's keepalive pings.
+6. **Pull the link.** Unplug one data wire. About 2.5 seconds later the comms board should print `BRIDGE link=DOWN`.
+
+### Troubleshooting
+
+| What you see | Likely cause |
+|---|---|
+| Link stays `DOWN` and `link_commands` stays at 0 | TX and RX are not crossed. Swap the two data wires. |
+| `frame_errors` keeps climbing on the control board | Missing or loose ground wire. |
+| `ERR SERIAL_FRAME_DISCARDED_SEND_NEWLINE` on the control board | Noise or a partial line on the link. Check the wiring, then send a blank line. |
+| Control board latched `SERIAL_FRAME_ERROR` | Bad data arrived on the link while armed. Fix the wiring, then send `CLEAR_FAULT`. |
+
+**Safety:** if bad data arrives on either input while the Xbox controller has the board armed, the control board latches a fault. A loose link cable fails safe, but don't unplug the link while armed unless you are testing that.
+
 ## Running the tests
 
 ```
