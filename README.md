@@ -71,6 +71,89 @@ Unplug both boards before wiring. You need 3 jumper wires, and **the two data wi
 
 **Safety:** if bad data arrives on either input while the Xbox controller has the board armed, the control board latches a fault. A loose link cable fails safe, but don't unplug the link while armed unless you are testing that.
 
+## Commands
+
+All commands are plain text, **UPPERCASE**, one per line, and at most 95 characters. Every command is answered on the same port it came in on.
+
+### Where you can send them
+
+| From | How | What happens |
+|---|---|---|
+| Control board USB | Serial Monitor, 115200 baud, Newline | Handled directly by the control board |
+| Comms board USB | Serial Monitor, 115200 baud, Newline | `BRIDGE` is answered by the comms board. Control board commands are forwarded, and replies come back prefixed with `CTRL> `. |
+| Wi-Fi (Python script) | UDP to the comms board, port 4210; the trailing newline is optional | Same as comms board USB, but replies come back with no prefix |
+
+### Control board commands
+
+These work from all three places above.
+
+| Command | Reply | What it does |
+|---|---|---|
+| `HELP` | 3 lines | Lists the commands and the Xbox controls. |
+| `VERSION` | e.g. `0.5.0-link-bench` | Prints the control board firmware version. |
+| `PING` | `PONG` | Checks that the board is answering. Changes nothing. |
+| `STATUS` | `STATUS ...` and `GAMEPAD ...` lines | Shows the state (`DISARMED`/`ARMED`/`FAULT`), the fault code, uptime and the requested throttle/brake/steering. Also shows the Xbox controller's connection and raw inputs. These are requested values, not measured motor positions. |
+| `HEALTH` | `HEALTH`, `BLUETOOTH`, `LINK`, `PINS` lines | Shows memory, flash, reset reason and error/fault counters. Also shows Bluetooth state, link pins and per-port command counts, plus the reserved GPIO pins. |
+| `DISARM` | `OK` | Resets requested throttle/brake/steering to 0 and goes to `DISARMED`. It cannot clear a latched fault. You must release LB before arming again. |
+| `STOP` | `OK` | Resets all requests to 0 and latches a `USER_STOP` fault. Stays in `FAULT` until `CLEAR_FAULT`. **Not a physical emergency stop.** |
+| `CLEAR_FAULT` | `OK` or `ERR NO_LATCHED_FAULT` | Clears a latched fault and returns to `DISARMED`. You must release LB before arming again. |
+| `TELEMETRY 1` | `OK` | Sends a `STATUS` report about 4 times a second, only on the port that sent the command. Reports are skipped if the port is backed up. |
+| `TELEMETRY 0` | `OK` | Turns those reports off for that port. Any other number replies `ERR TELEMETRY_EXPECTS_0_OR_1`. |
+
+USB, the link and Wi-Fi **cannot arm or move anything**. Only the Xbox controller can (see below).
+
+### Comms board commands
+
+| Command | Reply | What it does |
+|---|---|---|
+| `BRIDGE` | `BRIDGE ...` line | The comms board's own status: version, `link=UP/DOWN`, Wi-Fi state, IP address, signal strength (`rssi`), UDP port, current Wi-Fi client, and counters for forwarded lines, rejected commands and errors. Works from comms board USB and Wi-Fi. |
+
+The comms board also sends these on its own:
+
+| Message | Meaning |
+|---|---|
+| `BRIDGE link=UP` / `BRIDGE link=DOWN` | The control board started or stopped answering. `DOWN` means nothing was heard for 2.5 s. |
+| `WIFI connected ip=... udp_port=4210 hostname=mb001-comms.local` | Joined the Wi-Fi network (USB only). Use this IP in the Python script. |
+| `WIFI disconnected` / `WIFI client timed out` | Lost Wi-Fi (it retries automatically), or the Python script stopped sending for 1 s (USB only). |
+
+### Error replies
+
+| Reply | From | Cause |
+|---|---|---|
+| `ERR SYNTAX` | Control | Unknown command, wrong number of words, a bad number, or lowercase. |
+| `ERR SERIAL_FRAME_DISCARDED_SEND_NEWLINE` | Control | A non-printable byte, a line over 95 characters, or half a line with no newline for 250 ms. **If the board is armed, this also latches `SERIAL_FRAME_ERROR`.** |
+| `ERR NO_LATCHED_FAULT` | Control | `CLEAR_FAULT` was sent with no fault to clear. |
+| `ERR TELEMETRY_EXPECTS_0_OR_1` | Control | `TELEMETRY` was given a number other than 0 or 1. |
+| `ERR BRIDGE_UNKNOWN_COMMAND` | Comms | Not a command the control board knows, so it was not forwarded. |
+| `ERR BRIDGE_BAD_LINE` | Comms | A non-printable byte or a line over 95 characters. |
+| `ERR BRIDGE_PARTIAL_LINE_DROPPED` | Comms (USB) | Half a line with no newline for 250 ms. |
+| `ERR BRIDGE_BUSY` | Comms (Wi-Fi) | Another device is in control. Wait until it has been quiet for 1 s. |
+| `ERR BRIDGE_PACKET_TOO_LONG` | Comms (Wi-Fi) | UDP packet over 512 bytes. |
+| `WARN BRIDGE_LINK_DOWN` | Comms | The command was forwarded, but the control board has not answered recently. |
+
+### Xbox controller (movement)
+
+| Input | Action |
+|---|---|
+| Hold **LB** | Arms the board. First release LB, both triggers and the stick, then hold LB while the triggers and stick stay neutral. Releasing LB disarms and resets requests to 0. |
+| **RT** | Throttle request, 0–100%. |
+| **LT** | Brake request, 0–100%. Brake wins over throttle. |
+| **Left stick X** | Steering request, -100 to 100. |
+| **B** | Latches `USER_STOP`. Needs `CLEAR_FAULT` to recover. |
+
+### States and fault codes
+
+`STATUS` shows `state=` as `DISARMED`, `ARMED` or `FAULT`. A fault stays latched until `CLEAR_FAULT`, and `fault=` keeps the **first** cause:
+
+| Fault | Cause |
+|---|---|
+| `NONE` | No fault. |
+| `USER_STOP` | `STOP` command or the Xbox **B** button. |
+| `SERIAL_FRAME_ERROR` | Bad data on USB or the link while armed. |
+| `GAMEPAD_DISCONNECTED` | Xbox controller disconnected while armed. |
+| `GAMEPAD_TIMEOUT` | No new Xbox input for 500 ms while armed. |
+| `COMMAND_TIMEOUT` | Backup watchdog: no new movement request for 2 s while armed. |
+
 ## Running the tests
 
 ```
