@@ -7,8 +7,8 @@ board's replies back. It never arms, drives or overrides anything itself: the
 control board stays the only authority over arming, faults and outputs.
 
 CURRENT LIMITS (read before testing)
-- The control board does NOT listen on the UART link yet (next step), so
-  BRIDGE shows link=DOWN and forwarded commands get "WARN BRIDGE_LINK_DOWN".
+- Needs control board firmware 0.5.0-link-bench or later (it listens on the
+  UART link). With older control firmware, BRIDGE shows link=DOWN.
 - Only the control board's existing commands are forwarded:
   HELP VERSION PING STATUS HEALTH DISARM STOP CLEAR_FAULT TELEMETRY 0|1.
   Movement over Wi-Fi (ARM/SET) is not supported; Xbox still owns movement.
