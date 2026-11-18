@@ -8,17 +8,56 @@ Arduino firmware for the two ESP32-S3-N16R8 boards in the MB001 motorcycle proje
 | `MB001_Comms/` | Comms board | `0.1.0-comms-bench` | Wi-Fi bridge: relays text commands between the Python control script (UDP) and the control board (UART). |
 | `verification/` | — | — | Host-side C++ tests for both boards. |
 
-```
-Python script  --Wi-Fi/UDP port 4210-->  Comms board  --UART GPIO17/18-->  Control board  -->  motors / IMU
-```
-
-The control board is the only board that can arm or move anything. The comms board only forwards commands.
-
 Open each `.ino` in its own Arduino IDE window. Setup and operating notes:
 - [Control board](MB001_Control/README.txt) (Bluepad32 board package, Xbox pairing)
 - [Comms board](MB001_Comms/README.txt) (Wi-Fi setup, wiring, UDP protocol)
 
 **Status:** bench builds only. Motor outputs and IMU readings are not implemented. The UART link between the boards carries diagnostics and stop/recovery commands only; Xbox still owns movement.
+
+## How it all connects
+
+Solid lines are in the code now. Dashed lines are planned but not built yet.
+
+```mermaid
+flowchart LR
+    laptop["Laptop<br/>Python control script"]
+    router["Wi-Fi router<br/>2.4 GHz network"]
+    xbox["Xbox controller<br/>Model 1914"]
+
+    subgraph comms["Comms board · ESP32-S3 · Wi-Fi bridge"]
+        direction TB
+        c17["GPIO17 TX"]
+        c18["GPIO18 RX"]
+        cgnd["GND"]
+    end
+
+    subgraph control["Control board · ESP32-S3 · arms and drives"]
+        direction TB
+        k18["GPIO18 RX"]
+        k17["GPIO17 TX"]
+        kgnd["GND"]
+    end
+
+    drivers["Motor drivers<br/>GPIO 4–14<br/>(planned)"]
+    imu["BNO055 IMU<br/>I2C, GPIO 8/9<br/>(planned)"]
+
+    laptop <-->|Wi-Fi| router
+    router <-->|"UDP port 4210"| comms
+    c17 -->|UART| k18
+    k17 -->|UART| c18
+    cgnd ---|shared ground| kgnd
+    xbox -->|Bluetooth LE| control
+    control -.-> drivers
+    imu -.-> control
+```
+
+- **Wi-Fi and the board link carry commands both ways.** The Python script's commands go down to the control board, and status replies come back up the same path: laptop → Wi-Fi router → comms board (UDP port 4210) → control board (UART).
+- **The comms board only forwards.** It passes known commands to the control board and relays the replies. It never arms or drives anything itself.
+- **The Xbox controller pairs directly with the control board** over Bluetooth LE. It is the only input that can arm or drive. Wi-Fi and USB can check status, `STOP` and `CLEAR_FAULT`, but not move anything.
+- **The UART link is three wires.** The data wires cross over: comms GPIO17 (TX) goes to control GPIO18 (RX), and control GPIO17 (TX) goes to comms GPIO18 (RX). GND connects straight across. See [Connecting the boards](#connecting-the-boards-uart) for the full steps.
+- **USB on each board is separate.** It is for uploading firmware and the Serial Monitor; the boards don't talk to each other over USB.
+- **Planned on the control board:** three stepper motor drivers (throttle, brake, steering) on GPIO 4–14, and a BNO055 IMU on I2C (SDA GPIO8, SCL GPIO9). The pins are reserved but nothing drives or reads them yet.
+- **Why the controller isn't on the comms board:** the ESP32-S3 has one radio shared by Wi-Fi and Bluetooth. Keeping Bluetooth on the control board and Wi-Fi on the comms board means neither has to share the radio.
 
 ## Connecting the boards (UART)
 
