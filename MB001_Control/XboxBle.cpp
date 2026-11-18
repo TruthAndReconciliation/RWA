@@ -2,6 +2,7 @@
 #include <bt/uni_bt.h>
 #include <bt/uni_bt_le.h>
 #include "XboxBle.h"
+#include <stdio.h>
 
 static ControllerPtr activePad = nullptr;
 static bool validatedPad = false;
@@ -40,10 +41,11 @@ void beginXbox(BenchController& controller, GamepadInput& gamepad) {
   // Bluetooth commands here; this release shares a callback registration.
   // Preserve pairing keys across boots; do not call forgetBluetoothKeys here.
 }
-void printXboxHealth() {
-  Serial.printf("BLUETOOTH scanning=%d ble_enabled=%d candidate=%d validated=%d\n",
-                uni_bt_enable_new_connections_is_enabled(), uni_bt_le_is_enabled(),
-                activePad != nullptr, validatedPad);
+void formatXboxHealth(char* out, size_t size) {
+  // Written into a buffer so HEALTH can send it to USB or the comms link.
+  snprintf(out, size, "BLUETOOTH scanning=%d ble_enabled=%d candidate=%d validated=%d",
+           uni_bt_enable_new_connections_is_enabled(), uni_bt_le_is_enabled(),
+           activePad != nullptr, validatedPad);
 }
 void pollXbox(uint32_t now) {
   input->tick(*bench, now);
