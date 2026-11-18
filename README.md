@@ -49,14 +49,16 @@ Unplug both boards before wiring. You need 3 jumper wires, and **the two data wi
 
 ### First bench test
 
-1. **Upload the firmware.** On the comms board, copy `MB001_Comms/WifiSecrets.example.h` to `WifiSecrets.h` first; the Wi-Fi details can be placeholders for this test. Then upload `MB001_Comms` to it. Upload `MB001_Control` to the control board.
+1. **Upload the firmware.** On the comms board, copy `MB001_Comms/WifiSecrets.example.h` to `WifiSecrets.h` in the same folder first; the Wi-Fi details can be placeholders until step 7. (`WifiSecrets.h` is deliberately not in the repo, so your password never gets pushed. In the Arduino IDE you can make it with **⋯ → New Tab**.) Then upload `MB001_Comms` to it. Upload `MB001_Control` to the control board.
 2. **Noise check before wiring.** Open the control board's Serial Monitor (115200 baud, Newline) and type `HEALTH` a few times over about 10 seconds. `frame_errors` should stay at 0, which shows the unconnected link pin isn't picking up noise.
 3. **Wire the boards** as shown above, then plug in both USB cables. To watch both Serial Monitors at once, open each sketch in its own Arduino IDE window.
 4. **Check the comms board's monitor.** Within about a second you should see `BRIDGE link=UP`. Then type:
    - `PING` → you should get `CTRL> PONG`
    - `STATUS` → you should get `CTRL> STATUS version=0.5.0-link-bench ...`
 5. **Check the control board's monitor.** Type `HEALTH`. On the `LINK` line, `link_commands` should go up about once a second; those are the comms board's keepalive pings.
-6. **Pull the link.** Unplug one data wire. About 2.5 seconds later the comms board should print `BRIDGE link=DOWN`.
+6. **Pull the link.** Unplug one data wire. About 2.5 seconds later the comms board should print `BRIDGE link=DOWN`. Plug it back in and check that `link=UP` returns.
+7. **Wi-Fi.** Put your real network name and password in `MB001_Comms/WifiSecrets.h` (2.4 GHz only; a network that needs a username login won't work) and re-upload the comms board. Its monitor should print `WIFI connected ip=...`. From a laptop on the same network, run the Python test snippet in [`MB001_Comms/README.txt`](MB001_Comms/README.txt) using that IP. It should print a `BRIDGE ...` status line.
+8. **Xbox unchanged.** On the control board, repeat the arming and stop checks from "PAIR AND CHECK" in [`MB001_Control/README.txt`](MB001_Control/README.txt): hold LB to arm, B latches `USER_STOP`, and `CLEAR_FAULT` recovers. This needs the Xbox model 1914 controller.
 
 ### Troubleshooting
 
